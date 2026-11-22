@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Voice
+Exec=/usr/share/APPLaunch/bin/herdr-voice
+Terminal=false
+Icon=share/images/herdr-voice.png
+Type=Application

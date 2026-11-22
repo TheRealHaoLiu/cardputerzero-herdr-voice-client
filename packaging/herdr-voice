@@ -1,0 +1,6 @@
+#!/bin/sh
+# Started by the launcher as the logged-in user. Errors go to a log on the RAM disk.
+cd /opt/cardputerzero-herdr-voice-client || exit 1
+# Without these, worker threads each keep their own malloc arena, so freed audio buffers never go back to the system, and OpenBLAS starts a thread per core.
+export MALLOC_ARENA_MAX=2 OPENBLAS_NUM_THREADS=1
+exec python3 -m hvc 2>>"${XDG_RUNTIME_DIR:-/tmp}/hvc.log"

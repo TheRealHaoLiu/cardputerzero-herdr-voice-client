@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+# Local notes or copies of the device config; the real one lives on the device.
+config.json
+.env
