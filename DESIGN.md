@@ -43,7 +43,8 @@ Every call carries the access key (`x-voice-key`) and a device name
   SPACE is used instead.
 - `ENTER` = Allow, `ESC` = Deny when a prompt is shown (`ESC` dismisses one that can only be
   answered in Herdr); `BACKSPACE` stops the agent while it works.
-- Hold `ESC` exits to the launcher, as in M5Stack's own apps.
+- Hold `ESC` three seconds exits to the launcher, with a hint and a countdown from half a second on, as in
+  M5Stack's own apps (one second and no hint until 2026-11-22).
 
 ## Built with
 

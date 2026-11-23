@@ -7,7 +7,8 @@ from . import api, audio, camera, hw, store
 
 FONTS = "/usr/share/APPLaunch/share/font/"
 BG, FG, DIM, ACCENT, WARN, GOOD = (10, 12, 16), (236, 238, 242), (128, 136, 150), (255, 176, 46), (255, 99, 88), (96, 208, 140)
-EXIT_HOLD = 1.0  # seconds of ESC to leave, as in M5Stack's own apps
+EXIT_HOLD = 3.0  # seconds of ESC to leave, as in M5Stack's own apps (the launcher ends an app held that long anyway)
+EXIT_HINT = 0.5  # ... and from here on the hold shows a hint and a countdown; a shorter press is a tap
 KEY_F, KEY_X = 33, 45  # up and down on this keyboard, as on the launcher's home screen
 LIVE_EVERY = 0.2  # the wait between live-words sends, as a share of the clip so far (at least a second)
 MAX_TEXT = 4000   # characters kept of any one message, so a pasted blob cannot stall the screen
@@ -136,6 +137,15 @@ class App:
         img = Image.new("RGB", (hw.W, hw.H), BG)
         d = ImageDraw.Draw(img)
         getattr(self, "draw_" + self.mode, self.draw_main)(img, d)
+        held = hw.now() - self.esc_down if self.esc_down is not None else 0
+        if held >= EXIT_HINT:   # over everything, like the launcher's own "Hold ESC 3s to return home"
+            box = (40, 104, hw.W - 40, 146)
+            d.rounded_rectangle(box, radius=8, fill=(24, 28, 36), outline=FG, width=1)
+            text = f"Hold ESC to return home  {max(0.0, EXIT_HOLD - held):.1f} s"
+            d.text(((hw.W - d.textlength(text, font=F_SMALL)) / 2, box[1] + 7), text, font=F_SMALL, fill=FG)
+            x0, x1, y = box[0] + 12, box[2] - 12, box[1] + 27
+            d.rounded_rectangle((x0, y, x1, y + 6), radius=3, fill=(48, 54, 66))
+            d.rounded_rectangle((x0, y, x0 + max(6, (x1 - x0) * min(1.0, held / EXIT_HOLD)), y + 6), radius=3, fill=ACCENT)
         self.frame = img
         self.screen.show(img)
 
@@ -168,7 +178,7 @@ class App:
         self.centre(d, title, self.pin_note or ("Any keys. ENTER when done." if self.pin_stage != "new" else "Type any keys, then ENTER. ENTER alone = no PIN."))
         dots = "•" * len(self.pin)
         d.text(((hw.W - d.textlength(dots, font=F_BIG)) / 2, 28), dots, font=F_BIG, fill=ACCENT)
-        self.footer(d, "ENTER ok   BKSP clear   hold ESC quit")
+        self.footer(d, "ENTER ok   BKSP clear   hold ESC 3 s: quit")
 
     def draw_pair(self, img, d):
         self.header(d, "Pair with your Mac")
@@ -177,7 +187,7 @@ class App:
         y = 26
         for line in wrap(self.pair_note or "On the Mac: HerdrVoice > Connect a Phone. Point the camera at the code, then press ENTER.", F_BODY, hw.W - (120 if self.pair_thumb is not None else 14)):
             d.text((7, y), line, font=F_BODY, fill=FG); y += 19
-        self.footer(d, "ENTER scan   hold ESC quit")
+        self.footer(d, "ENTER scan   hold ESC 3 s: quit")
 
     def draw_sessions(self, img, d):
         self.header(d, "Sessions")
@@ -601,8 +611,8 @@ class App:
             pressed, self.esc_down = self.esc_down, None
             if pressed is None:
                 return
-            if hw.now() - pressed >= EXIT_HOLD:
-                self.running = False
+            if hw.now() - pressed >= EXIT_HINT:   # let go once the hint was up: a hold called off, not a tap
+                self.dirty = True
                 return
             down = True  # a short press and release: the screen gets it as one ESC press (back, deny, dismiss)
         handler = getattr(self, "key_" + self.mode, None)
@@ -752,14 +762,17 @@ class App:
             while self.running:
                 # Sleep until something can happen: a key, a worker thread waking the reader, or the next deadline.
                 due = [tick + (4 if self.queued else 20)]
-                if self.esc_down is not None:
-                    due.append(self.esc_down + EXIT_HOLD)
+                if self.esc_down is not None:   # the hint appears, then its countdown is redrawn ten times a second
+                    hint = self.esc_down + EXIT_HINT
+                    due.append(hint if hw.now() < hint else hw.now() + 0.1)
                 if self.listening:
                     due.append(self.listen_began + audio.MAX_SECS)
                 for code, down in self.keys.read(max(0.0, min(due) - hw.now())):
                     self.key(code, down)
                 if self.esc_down is not None and hw.now() - self.esc_down >= EXIT_HOLD:
                     self.running = False
+                elif self.esc_down is not None and hw.now() - self.esc_down >= EXIT_HINT:
+                    self.dirty = True
                 if self.listening and hw.now() - self.listen_began >= audio.MAX_SECS:
                     self.say("sys", f"Stopped at the {audio.MAX_SECS // 60}-minute limit.")
                     self.end_listening()  # as if SPACE were let go

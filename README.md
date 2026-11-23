@@ -45,7 +45,7 @@ Open the **Voice** tile in the launcher.
 | BACKSPACE | stop what the agent is doing (like Ctrl-C) and anything being spoken |
 | N | after talking to an agent that is mid-task: send the waiting message now |
 | M | menu: refresh sessions, pair again, quit |
-| hold ESC one second | leave the app |
+| hold ESC three seconds | leave the app (a hint and a countdown show after half a second, as in M5Stack's own apps) |
 
 Each session shows its own conversation, loaded from the server when you switch to it.
 A message sent while an agent is mid-task shows "Not read yet" until the agent has read

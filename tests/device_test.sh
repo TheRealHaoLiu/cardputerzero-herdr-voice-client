@@ -33,7 +33,7 @@ sleep 4;               shot ask
 key 28 5;              shot after-allow
 key 50 0.5;            shot menu               # M
 key 1 0.5                                       # ESC: back
-put "1 1"; sleep 1.5; put "1 0"; sleep 1
+put "1 1"; sleep 1.2; shot esc-hint; sleep 2.6; put "1 0"; sleep 1   # hold ESC: the hint, then out at 3 s
 kill -0 $APP 2>/dev/null && echo "FAIL: still running after ESC hold" || echo "ok: exited on ESC hold"
 ls -l "$XDG_CONFIG_HOME/cardputerzero-herdr-voice-client/" | awk '{print $1, $NF}'
 start;                 shot pin-unlock
